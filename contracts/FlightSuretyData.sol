@@ -11,11 +11,23 @@ contract FlightSuretyData {
 
     address private contractOwner;                                      // Account used to deploy contract
     bool private operational = true;                                    // Blocks all state changes throughout the contract if false
-
+    mapping(address => bool) private authorizedAppContracts;             // Authorized app contracts
+    mapping(address => bool) private registeredAirlines;                // Register airlines 
+    mapping(address => bool) private activeAirlines;                    // Registered airlines that paid 10E
+    uint256 private registeredAirlinesCount = 0;                        // Total registered airlines
+    
+    struct airlineToRegister{
+        bool requested;
+        mapping(address => bool) approvedAirlines;
+        uint256 approvedAirlinesCount;
+    }
+    mapping(address => airlineToRegister) private airlinesToRegister;           // Airline to be reigstered
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
-
+    event airlineRegistrationRequested(address airlineToRegisterAddress);
+    event airlineRegistrationApproved(address airlineToRegisterAddress, address airlineApproved, uint256 approvalCount);
+    event airlineRegistered(address airlineToRegisterAddress);
 
     /**
     * @dev Constructor
@@ -27,6 +39,10 @@ contract FlightSuretyData {
                                 public 
     {
         contractOwner = msg.sender;
+
+        // Assume contractOwner is the first airline
+        registeredAirlines[msg.sender] = true;
+        registeredAirlinesCount+=1;
     }
 
     /********************************************************************************************/
@@ -56,6 +72,36 @@ contract FlightSuretyData {
         _;
     }
 
+    modifier requireAuthorizedCaller()
+    {
+        require(authorizedAppContracts[msg.sender], "Caller is not authorized");
+        _;
+    }
+
+    modifier requireRegisteredAirline()
+    {
+        require(registeredAirlines[tx.origin], "Caller is not a registered airline");
+        _;
+    }
+
+    modifier requireAirlineToRegisterRequested(address airlineToRegisterAddress)
+    {
+        require(airlinesToRegister[airlineToRegisterAddress].requested, "Airline to register is not requested");
+        _;
+    }
+
+    modifier requireAirlineHasNotApproved(address airlineToRegisterAddress)
+    {
+        require(airlinesToRegister[airlineToRegisterAddress].approvedAirlines[tx.origin] == false, "Calling airline has already approved registration");
+        _;
+    }
+
+    modifier requireActiveAirline()
+    {
+        require(activeAirlines[tx.origin], "Airline is not active");
+        _;
+    }
+
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
@@ -73,7 +119,16 @@ contract FlightSuretyData {
         return operational;
     }
 
+    function authorizeCaller(address caller)
+                            public
+                            requireContractOwner
+    {
+        authorizedAppContracts[caller] = true;
+    }
 
+    function isAirline(address airline) public returns(bool){
+        return activeAirlines[airline];
+    }
     /**
     * @dev Sets contract operations on/off
     *
@@ -99,12 +154,53 @@ contract FlightSuretyData {
     *
     */   
     function registerAirline
-                            (   
+                            (
+                                address airlineToRegisterAddress
                             )
                             external
-                            pure
+                            requireAuthorizedCaller
     {
+        if (registeredAirlinesCount < 4){
+            require(activeAirlines[tx.origin], "Only registered airline can register additional airlines");
+            
+            // Register airline
+            registeredAirlines[airlineToRegisterAddress] = true;
+            registeredAirlinesCount += 1;
+
+            // emit airlineRegistered(airlineToRegisterAddress);
+
+        }
+        else {
+            require(airlinesToRegister[airlineToRegisterAddress].requested == false, "Airline already waiting to be registered");
+            
+            airlinesToRegister[airlineToRegisterAddress].requested = true;
+            // emit airlineRegistrationRequested(airlineToRegisterAddress);
+        }
     }
+
+    function approveAirlineRegistration(
+        address airlineToRegisterAddress
+    )
+    external
+    requireAuthorizedCaller
+    requireActiveAirline
+    requireAirlineToRegisterRequested(airlineToRegisterAddress)
+    requireAirlineHasNotApproved(airlineToRegisterAddress)
+    {
+        airlinesToRegister[airlineToRegisterAddress].approvedAirlines[tx.origin] = true;
+        airlinesToRegister[airlineToRegisterAddress].approvedAirlinesCount += 1;
+
+        // emit airlineRegistrationApproved(airlineToRegisterAddress, tx.origin, airlinesToRegister[airlineToRegisterAddress].approvedAirlinesCount);
+
+        // Register airline if consensus reached
+        if (airlinesToRegister[airlineToRegisterAddress].approvedAirlinesCount > registeredAirlinesCount/2)
+        {
+            airlinesToRegister[airlineToRegisterAddress].requested = false;
+            registeredAirlines[airlineToRegisterAddress] = true;
+            registeredAirlinesCount += 1;
+        }
+    }
+
 
 
    /**
@@ -154,7 +250,11 @@ contract FlightSuretyData {
                             )
                             public
                             payable
+                            requireRegisteredAirline
+
     {
+        require(msg.value >= 10 ether, "Fund has to be greater than 10 ether");
+        activeAirlines[tx.origin] = true;
     }
 
     function getFlightKey

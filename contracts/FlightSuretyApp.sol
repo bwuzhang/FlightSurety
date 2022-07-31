@@ -25,6 +25,7 @@ contract FlightSuretyApp {
     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
 
     address private contractOwner;          // Account used to deploy contract
+    FlightSuretyData flightSuretyData;
 
     struct Flight {
         bool isRegistered;
@@ -50,7 +51,7 @@ contract FlightSuretyApp {
     modifier requireIsOperational() 
     {
          // Modify to call data contract's status
-        require(true, "Contract is currently not operational");  
+        require(flightSuretyData.isOperational(), "Contract is currently not operational");  
         _;  // All modifiers require an "_" which indicates where the function body will be added
     }
 
@@ -73,10 +74,12 @@ contract FlightSuretyApp {
     */
     constructor
                                 (
+                                    address dataContract
                                 ) 
                                 public 
     {
         contractOwner = msg.sender;
+        flightSuretyData = FlightSuretyData(dataContract);
     }
 
     /********************************************************************************************/
@@ -85,10 +88,10 @@ contract FlightSuretyApp {
 
     function isOperational() 
                             public 
-                            pure 
+                            view 
                             returns(bool) 
     {
-        return true;  // Modify to call data contract's status
+        return flightSuretyData.isOperational();  // Modify to call data contract's status
     }
 
     /********************************************************************************************/
@@ -101,13 +104,12 @@ contract FlightSuretyApp {
     *
     */   
     function registerAirline
-                            (   
+                            (  
+                                address airlineToRegisterAddress
                             )
                             external
-                            pure
-                            returns(bool success, uint256 votes)
     {
-        return (success, 0);
+        flightSuretyData.registerAirline(airlineToRegisterAddress);
     }
 
 
@@ -335,3 +337,15 @@ contract FlightSuretyApp {
 // endregion
 
 }   
+
+contract FlightSuretyData {
+        function isOperational() 
+                            external 
+                            view 
+                            returns(bool);
+        function registerAirline
+                            (
+                                address airlineToRegisterAddress
+                            )
+                            external;
+}
