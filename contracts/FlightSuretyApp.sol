@@ -135,6 +135,14 @@ contract FlightSuretyApp {
         flights[key].updatedTimestamp = timestamp;
     }
 
+    function isRegisteredFlight(
+        address airline,
+        string flight,
+        uint256 timestamp
+    ) external view returns (bool) {
+        return flights[getFlightKey(airline, flight, timestamp)].isRegistered;
+    }
+
     /**
      * @dev Called after oracle has updated flight status
      *

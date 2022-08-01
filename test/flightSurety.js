@@ -5,7 +5,7 @@ const ETHER_TO_WEI = 1000000000000000000;
 contract('Flight Surety Tests', async (accounts) => {
 
   var config;
-  before('setup contract', async () => {
+  beforeEach('setup contract', async () => {
     config = await Test.Config(accounts);
     await config.flightSuretyData.authorizeCaller(config.flightSuretyApp.address);
   });
@@ -91,7 +91,7 @@ contract('Flight Surety Tests', async (accounts) => {
 
   });
 
-  it('(airline) can register an Airline after paid 10 ether', async () => {
+  it('(airline) becomes active after paying 10 ether', async () => {
     try {
         await config.flightSuretyData.fund({from: accounts[0], value: 10 * ETHER_TO_WEI});
     } catch (error) {
@@ -102,4 +102,60 @@ contract('Flight Surety Tests', async (accounts) => {
     assert.equal(result, true, "Paying 10 ether will make airline active");
   });
 
+  it('(airline) can register other airlines if active', async () => {
+    // Fund #1 airline
+    await config.flightSuretyData.fund({from: accounts[0], value: 10 * ETHER_TO_WEI});
+
+    // Register #2 - #5 airline
+    await config.flightSuretyApp.registerAirline(accounts[1], {from: accounts[0]});
+    await config.flightSuretyApp.registerAirline(accounts[2], {from: accounts[0]});
+    await config.flightSuretyApp.registerAirline(accounts[3], {from: accounts[0]});
+    await config.flightSuretyApp.registerAirline(accounts[4], {from: accounts[0]});
+
+    let result1 = await config.flightSuretyData.isRegisteredAirline.call(accounts[1]); 
+    let result2 = await config.flightSuretyData.isRegisteredAirline.call(accounts[2]); 
+    let result3 = await config.flightSuretyData.isRegisteredAirline.call(accounts[3]); 
+    let result4 = await config.flightSuretyData.isRegisteredAirline.call(accounts[4]); 
+
+    assert.equal(result1, true, "Active airline can register another airline #2");
+    assert.equal(result2, true, "Active airline can register another airline #3");
+    assert.equal(result3, true, "Active airline can register another airline #4");
+    assert.equal(result4, false, "Consensus needed for the #5 airline registered");
+  });
+
+  it('(airline) can register 5th airline if consensus reached', async () => {
+    // Fund #1 airline
+    await config.flightSuretyData.fund({from: accounts[0], value: 10 * ETHER_TO_WEI});
+
+    // Register #2 - #4 airline
+    await config.flightSuretyApp.registerAirline(accounts[1], {from: accounts[0]});
+    await config.flightSuretyApp.registerAirline(accounts[2], {from: accounts[0]});
+    await config.flightSuretyApp.registerAirline(accounts[3], {from: accounts[0]});
+
+    // Fund #2 - #4 airline 
+    await config.flightSuretyData.fund({from: accounts[1], value: 10 * ETHER_TO_WEI});
+    await config.flightSuretyData.fund({from: accounts[2], value: 10 * ETHER_TO_WEI});
+    await config.flightSuretyData.fund({from: accounts[3], value: 10 * ETHER_TO_WEI});
+
+    // Register #5 airline
+    await config.flightSuretyApp.registerAirline(accounts[4], {from: accounts[0]});
+
+    // Approve # airline from #2 and #3 to reach consensus: 3/4
+    await config.flightSuretyData.approveAirlineRegistration(accounts[4], {from: accounts[1]});
+    await config.flightSuretyData.approveAirlineRegistration(accounts[4], {from: accounts[2]});
+
+    let result = await config.flightSuretyData.isRegisteredAirline.call(accounts[4]);
+    assert.equal(result, true, "The #5 airline can be registered when consensus reached");
+  });
+
+  it('(airline) can register flight', async () => {
+    // Fund #1 airline
+    await config.flightSuretyData.fund({from: accounts[0], value: 10 * ETHER_TO_WEI});
+
+    // Register flight
+    await config.flightSuretyApp.registerFlight("Flight 1", 20220801, {from: accounts[0]});
+
+    let result = await config.flightSuretyApp.isRegisteredFlight.call(accounts[0], "Flight 1", 20220801, {from: accounts[0]});
+    assert.equal(result, true, "Flight should be registered.");
+  });
 });

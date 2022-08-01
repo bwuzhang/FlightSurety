@@ -194,13 +194,17 @@ contract FlightSuretyData {
             );
 
             airlinesToRegister[airlineToRegisterAddress].requested = true;
+            airlinesToRegister[airlineToRegisterAddress].approvedAirlines[
+                    tx.origin
+                ] = true;
+            airlinesToRegister[airlineToRegisterAddress]
+                .approvedAirlinesCount = 1;
             // emit airlineRegistrationRequested(airlineToRegisterAddress);
         }
     }
 
     function approveAirlineRegistration(address airlineToRegisterAddress)
         external
-        requireAuthorizedCaller
         requireActiveAirline
         requireAirlineToRegisterRequested(airlineToRegisterAddress)
         requireAirlineHasNotApproved(airlineToRegisterAddress)
