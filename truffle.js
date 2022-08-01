@@ -10,11 +10,11 @@ if (fs.existsSync('secrets.json')) {
 module.exports = {
   networks: {
     development: {
-      provider: function() {
-        return new HDWalletProvider(secrets.mnemonic, "http://127.0.0.1:8545/", 0, 50);
-      },
+      host: "127.0.0.1",
+      port: 8545,
       network_id: '*',
-      gas: 4500000
+      gas: 4500000,
+      // from: '0x3ec7a486e12BFBb97646904aB569B20d0709BC41'
     }
   },
   compilers: {

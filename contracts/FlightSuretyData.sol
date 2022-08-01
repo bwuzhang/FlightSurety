@@ -43,6 +43,7 @@ contract FlightSuretyData {
         uint256 approvalCount
     );
     event airlineRegistered(address airlineToRegisterAddress);
+    event airlineActivated(address airline);
 
     /**
      * @dev Constructor
@@ -94,6 +95,11 @@ contract FlightSuretyData {
         _;
     }
 
+    modifier requireActiveAirline() {
+        require(activeAirlines[tx.origin], "Caller is not an active airline");
+        _;
+    }
+
     modifier requireAirlineToRegisterRequested(
         address airlineToRegisterAddress
     ) {
@@ -111,11 +117,6 @@ contract FlightSuretyData {
             ] == false,
             "Calling airline has already approved registration"
         );
-        _;
-    }
-
-    modifier requireActiveAirline() {
-        require(activeAirlines[tx.origin], "Airline is not active");
         _;
     }
 
@@ -146,8 +147,12 @@ contract FlightSuretyData {
         authorizedAppContracts[caller] = true;
     }
 
-    function isAirline(address airline) public view returns (bool) {
+    function isActiveAirline(address airline) public view returns (bool) {
         return activeAirlines[airline];
+    }
+
+    function isRegisteredAirline(address airline) public view returns (bool) {
+        return registeredAirlines[airline];
     }
 
     /**
@@ -175,9 +180,8 @@ contract FlightSuretyData {
         if (registeredAirlinesCount < 4) {
             require(
                 activeAirlines[tx.origin],
-                "Only registered airline can register additional airlines"
+                "Only active Airline can register other airlines"
             );
-
             // Register airline
             registeredAirlines[airlineToRegisterAddress] = true;
             registeredAirlinesCount += 1;
@@ -265,6 +269,7 @@ contract FlightSuretyData {
     function fund() public payable requireRegisteredAirline {
         require(msg.value >= 10 ether, "Fund has to be greater than 10 ether");
         activeAirlines[tx.origin] = true;
+        emit airlineActivated(tx.origin);
     }
 
     function getFlightKey(

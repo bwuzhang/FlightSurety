@@ -120,7 +120,10 @@ contract FlightSuretyApp {
      *
      */
     function registerFlight(string flight, uint256 timestamp) external {
-        require(flightSuretyData.isAirline(tx.origin), "Airline is invalid");
+        require(
+            flightSuretyData.isActiveAirline(tx.origin),
+            "Airline is invalid"
+        );
         bytes32 key = getFlightKey(tx.origin, flight, timestamp);
         require(
             flights[key].isRegistered == false,
@@ -381,7 +384,7 @@ contract FlightSuretyData {
 
     function registerAirline(address airlineToRegisterAddress) external;
 
-    function isAirline(address airline) external returns (bool);
+    function isActiveAirline(address airline) external returns (bool);
 
     function buy(
         address airline,

@@ -1,7 +1,7 @@
 
 var Test = require('../config/testConfig.js');
 var BigNumber = require('bignumber.js');
-
+const ETHER_TO_WEI = 1000000000000000000;
 contract('Flight Surety Tests', async (accounts) => {
 
   var config;
@@ -75,7 +75,6 @@ contract('Flight Surety Tests', async (accounts) => {
     
     // ARRANGE
     let newAirline = accounts[1];
-
     // ACT
     try {
         await config.flightSuretyApp.registerAirline(newAirline, {from: accounts[0]});
@@ -83,12 +82,24 @@ contract('Flight Surety Tests', async (accounts) => {
     catch(e) {
 
     }
-    let result = await config.flightSuretyData.isAirline.call(newAirline); 
+    let result = await config.flightSuretyData.isActiveAirline.call(accounts[0]); 
+
+    result = await config.flightSuretyData.isActiveAirline.call(newAirline); 
 
     // ASSERT
     assert.equal(result, false, "Airline should not be able to register another airline if it hasn't provided funding");
 
   });
- 
+
+  it('(airline) can register an Airline after paid 10 ether', async () => {
+    try {
+        await config.flightSuretyData.fund({from: accounts[0], value: 10 * ETHER_TO_WEI});
+    } catch (error) {
+        
+    }
+
+    let result = await config.flightSuretyData.isActiveAirline.call(accounts[0]); 
+    assert.equal(result, true, "Paying 10 ether will make airline active");
+  });
 
 });
