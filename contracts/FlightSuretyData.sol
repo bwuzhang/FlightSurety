@@ -292,6 +292,18 @@ contract FlightSuretyData {
         return allInsurance[insuree][key].statusCode;
     }
 
+    // Function overload
+    function getInsuranceStatusCode(
+        address insuree,
+        address airline,
+        string flight,
+        uint256 timestamp
+    ) external view returns (uint8) {
+        return
+            allInsurance[insuree][getFlightKey(airline, flight, timestamp)]
+                .statusCode;
+    }
+
     function updateInsuranceStatusCode(
         address insuree,
         bytes32 key,

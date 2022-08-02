@@ -158,4 +158,18 @@ contract('Flight Surety Tests', async (accounts) => {
     let result = await config.flightSuretyApp.isRegisteredFlight.call(accounts[0], "Flight 1", 20220801, {from: accounts[0]});
     assert.equal(result, true, "Flight should be registered.");
   });
+
+  it('(passenger) can buy insurance for a flight', async () => {
+    // Fund #1 airline
+    await config.flightSuretyData.fund({from: accounts[0], value: 10 * ETHER_TO_WEI});
+
+    // Register flight
+    await config.flightSuretyApp.registerFlight("Flight 1", 20220801, {from: accounts[0]});
+
+    // Buy insurance
+    await config.flightSuretyApp.buyInsurance(accounts[0], "Flight 1", 20220801, {from: accounts[1], value: 0.5 * ETHER_TO_WEI});
+
+    let result = await config.flightSuretyData.getInsuranceStatusCode(accounts[1], accounts[0], "Flight 1", 20220801);
+    assert.equal(result, 10, "Insurnace should be active.");
+  } )
 });
