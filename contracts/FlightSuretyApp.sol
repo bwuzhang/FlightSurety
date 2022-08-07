@@ -174,7 +174,7 @@ contract FlightSuretyApp {
             isOpen: true
         });
 
-        emit OracleRequest(index, airline, flight, timestamp);
+        emit OracleRequest(index, airline, flight, timestamp, key);
     }
 
     function buyInsurance(
@@ -261,10 +261,12 @@ contract FlightSuretyApp {
     );
 
     event OracleReport(
+        uint8 index,
         address airline,
         string flight,
         uint256 timestamp,
-        uint8 status
+        uint8 status,
+        bytes32 key
     );
 
     // Event fired when flight status request is submitted
@@ -274,8 +276,11 @@ contract FlightSuretyApp {
         uint8 index,
         address airline,
         string flight,
-        uint256 timestamp
+        uint256 timestamp,
+        bytes32 key
     );
+
+    event OracleRegistered(address oracle);
 
     // Register an oracle with the contract
     function registerOracle() external payable {
@@ -285,6 +290,7 @@ contract FlightSuretyApp {
         uint8[3] memory indexes = generateIndexes(msg.sender);
 
         oracles[msg.sender] = Oracle({isRegistered: true, indexes: indexes});
+        emit OracleRegistered(msg.sender);
     }
 
     function getMyIndexes() external view returns (uint8[3]) {
@@ -317,16 +323,16 @@ contract FlightSuretyApp {
         bytes32 key = keccak256(
             abi.encodePacked(index, airline, flight, timestamp)
         );
+
         require(
             oracleResponses[key].isOpen,
             "Flight or timestamp do not match oracle request"
         );
-
         oracleResponses[key].responses[statusCode].push(msg.sender);
 
         // Information isn't considered verified until at least MIN_RESPONSES
         // oracles respond with the *** same *** information
-        emit OracleReport(airline, flight, timestamp, statusCode);
+        emit OracleReport(index, airline, flight, timestamp, statusCode, key);
         if (
             oracleResponses[key].responses[statusCode].length >= MIN_RESPONSES
         ) {
