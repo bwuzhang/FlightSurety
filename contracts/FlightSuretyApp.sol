@@ -133,6 +133,13 @@ contract FlightSuretyApp {
         flights[key].airline = tx.origin;
         flights[key].statusCode = STATUS_CODE_UNKNOWN;
         flights[key].updatedTimestamp = timestamp;
+
+        emit FlightStatusInfo(
+            tx.origin,
+            flight,
+            timestamp,
+            STATUS_CODE_UNKNOWN
+        );
     }
 
     function isRegisteredFlight(

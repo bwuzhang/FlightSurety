@@ -1,4 +1,5 @@
 import FlightSuretyApp from "../../build/contracts/FlightSuretyApp.json";
+import FlightSuretyData from "../../build/contracts/FlightSuretyData.json";
 import Config from "./config.json";
 import Web3 from "web3";
 import express from "express";
@@ -12,8 +13,12 @@ let flightSuretyApp = new web3.eth.Contract(
   FlightSuretyApp.abi,
   config.appAddress
 );
+let flightSuretyData = new web3.eth.Contract(
+  FlightSuretyData.abi,
+  config.dataAddress
+);
 let index_to_oracles = {};
-function initAccounts() {
+function initOracles() {
   return new Promise((resolve, reject) => {
     web3.eth
       .getAccounts()
@@ -56,6 +61,24 @@ function initAccounts() {
   });
 }
 
+function initAccounts() {
+  return new Promise((resolve, reject) => {
+    web3.eth
+      .getAccounts()
+      .then((accounts) => {
+        flightSuretyData.methods.fund().send({
+          from: accounts[0],
+          value: web3.utils.toWei("10", "ether"),
+          gas: 4700000,
+          gasPrice: 200000000,
+        });
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+}
+
 function addDict(dict, index, item) {
   // console.log(dict, index, item);
   if (!(index in dict)) {
@@ -75,9 +98,6 @@ flightSuretyApp.events.OracleRequest(
       console.log(error);
     } else {
       console.log(event);
-      setTimeout(function () {
-        console.log("Executed after 1 second");
-      }, 1000);
       index_to_oracles[event.returnValues.index].forEach((account) =>
         // for (var account in index_to_oracles[event.returnValues.index]) {
         // console.log(
@@ -129,6 +149,7 @@ flightSuretyApp.events.OracleReport(
 );
 
 initAccounts();
+initOracles();
 console.log(index_to_oracles);
 
 const app = express();
