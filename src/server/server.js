@@ -89,6 +89,30 @@ function addDict(dict, index, item) {
   // console.log(dict);
 }
 
+// Create a function to authorize Caller of new promise
+function authorizeCaller() {
+  return new Promise((resolve, reject) => {
+    web3.eth.getAccounts().then((accounts) => {
+      flightSuretyData.methods
+        .authorizeCaller(config.appAddress)
+        .send({
+          from: accounts[0],
+        })
+        .then((result) => {
+          console.log(
+            result
+              ? `Caller: ${config.appAddress} is authorized`
+              : `Caller: ${config.appAddress} is not authorized`
+          );
+          return (result ? resolve : reject)(result);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+  });
+}
+
 flightSuretyApp.events.OracleRequest(
   {
     fromBlock: 0,
@@ -98,15 +122,7 @@ flightSuretyApp.events.OracleRequest(
       console.log(error);
     } else {
       console.log(event);
-      index_to_oracles[event.returnValues.index].forEach((account) =>
-        // for (var account in index_to_oracles[event.returnValues.index]) {
-        // console.log(
-        //   event.returnValues.index,
-        //   // event.returnValues.airline,
-        //   // event.returnValues.flight,
-        //   // event.returnValues.timestamp,
-        //   index_to_oracles[event.returnValues.index]
-        // );
+      index_to_oracles[event.returnValues.index].forEach((account) => {
         flightSuretyApp.methods
           .submitOracleResponse(
             event.returnValues.index,
@@ -116,7 +132,10 @@ flightSuretyApp.events.OracleRequest(
             40 // As a dummy server, always return STATUS_CODE_LATE_AIRLINE on all flights
           )
           .send({ from: account, gas: 4700000, gasPrice: 200000000 })
-      );
+          .catch((err) => {
+            console.log(err);
+          });
+      });
     }
     // console.log(event.returnValues.index);
   }
@@ -148,6 +167,33 @@ flightSuretyApp.events.OracleReport(
   }
 );
 
+flightSuretyApp.events.FlightStatusInfo(
+  {
+    fromBlock: 0,
+  },
+  function (error, event) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log(event);
+    }
+  }
+);
+
+flightSuretyData.events.paymentInfo(
+  {
+    fromBlock: 0,
+  },
+  function (error, event) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log(event);
+    }
+  }
+);
+
+authorizeCaller();
 initAccounts();
 initOracles();
 console.log(index_to_oracles);

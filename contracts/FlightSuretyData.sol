@@ -44,6 +44,7 @@ contract FlightSuretyData {
     );
     event airlineRegistered(address airlineToRegisterAddress);
     event airlineActivated(address airline);
+    event paymentInfo(address insuree, uint256 amount);
 
     /**
      * @dev Constructor
@@ -260,9 +261,12 @@ contract FlightSuretyData {
      *  @dev Transfers eligible payout funds to insuree
      *
      */
-    function pay() external requireAvailablePayout {
+    function pay() external requireAvailablePayout returns (uint256) {
+        uint256 amount = insureePayout[tx.origin];
         insureePayout[tx.origin] = 0;
         tx.origin.transfer(insureePayout[tx.origin]);
+        emit paymentInfo(tx.origin, amount);
+        return amount;
     }
 
     /**

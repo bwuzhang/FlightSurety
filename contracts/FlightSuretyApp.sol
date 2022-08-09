@@ -224,7 +224,8 @@ contract FlightSuretyApp {
     }
 
     function requestPayout() external {
-        flightSuretyData.pay();
+        uint256 amount = flightSuretyData.pay();
+        emit paymentInfo(tx.origin, amount);
     }
 
     // region ORACLE MANAGEMENT
@@ -276,6 +277,7 @@ contract FlightSuretyApp {
         bytes32 key
     );
 
+    event paymentInfo(address insuree, uint256 amount);
     // Event fired when flight status request is submitted
     // Oracles track this and if they have a matching index
     // they fetch data and submit a response
@@ -415,7 +417,7 @@ contract FlightSuretyData {
 
     function creditInsurees(address insuree, uint256 amount) external;
 
-    function pay() external;
+    function pay() external returns (uint256);
 
     function getInsuranceStatusCode(address insuree, bytes32 key)
         external

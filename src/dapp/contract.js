@@ -20,7 +20,7 @@ export default class Contract {
     this.web3.eth.getAccounts((error, accts) => {
       this.owner = accts[0];
 
-      let counter = 1;
+      let counter = 0;
 
       while (this.airlines.length < 5) {
         this.airlines.push(accts[counter++]);
@@ -64,6 +64,60 @@ export default class Contract {
     };
     self.flightSuretyApp.methods
       .registerFlight(payload.flight, payload.timestamp)
+      .send(
+        { from: self.owner, gas: 4700000, gasPrice: 200000000 },
+        (error, result) => {
+          callback(error, payload);
+        }
+      );
+  }
+
+  buyInsurance(airline, flight, timestamp, value, callback) {
+    let self = this;
+    let payload = {
+      airline: airline,
+      flight: flight,
+      timestamp: timestamp,
+    };
+    self.flightSuretyApp.methods
+      .buyInsurance(payload.airline, payload.flight, payload.timestamp)
+      .send(
+        { from: self.owner, gas: 4700000, gasPrice: 200000000, value: value },
+        (error, result) => {
+          callback(error, payload);
+        }
+      );
+  }
+
+  calculatePayment(airline, flight, timestamp, callback) {
+    let self = this;
+    let payload = {
+      airline: airline,
+      flight: flight,
+      timestamp: timestamp,
+    };
+    self.flightSuretyApp.methods
+      .calculatePayout(
+        self.owner,
+        payload.airline,
+        payload.flight,
+        payload.timestamp
+      )
+      .send(
+        { from: self.owner, gas: 4700000, gasPrice: 200000000 },
+        (error, result) => {
+          callback(error, payload);
+        }
+      );
+  }
+
+  getPaid(callback) {
+    let self = this;
+    let payload = {
+      insurer: self.owner,
+    };
+    self.flightSuretyApp.methods
+      .requestPayout()
       .send(
         { from: self.owner, gas: 4700000, gasPrice: 200000000 },
         (error, result) => {
